@@ -24,6 +24,10 @@ describe("configuration options", function()
                 enable_default_keybindings = false,
                 persist_zoom = false,
             },
+            pane_flag = {
+                enable = false,
+                name = "@is_vim",
+            },
             resize = {
                 enable_default_keybindings = false,
                 resize_step_x = 1,

@@ -100,6 +100,14 @@ The following defaults are given:
         -- prevents unzoom tmux when navigating beyond vim border
         persist_zoom = false,
     },
+    pane_flag = {
+        -- sets a tmux pane option while nvim runs in the pane, see
+        -- "faster nvim detection" below
+        enable = false,
+
+        -- name of the tmux pane option
+        name = "@is_vim",
+    },
     resize = {
         -- enables default keybindings (A-hjkl) for normal mode
         enable_default_keybindings = true,
@@ -258,6 +266,18 @@ To run custom bindings in nvim, make sure to not set `enable_default_keybindings
 }
 ```
 
+### faster nvim detection
+
+The `is_vim` condition above forks `ps` and `grep` on every keypress, which makes held keys (e.g. resizing) feel laggy. With `pane_flag.enable = true`, nvim sets a tmux pane option (`@is_vim` by default) while it runs, and tmux can test it with a format instead:
+
+```tmux
+is_vim="#{&&:#{@is_vim},#{!:#{m/r:^(ba|z|fi|da|k|tc)?sh$,#{pane_current_command}}}}"
+
+bind -n 'M-h' if-shell -F "$is_vim" 'send-keys M-h' 'resize-pane -L 1'
+```
+
+Unlike matching `#{pane_current_command}`, this also detects nvim started from another program (e.g. yazi). nvim restores the option's previous value on exit, so nested nvims do not clear their parent's flag. The shell check ignores a flag left behind by an nvim that died without cleaning up.
+
 ## tpm
 
 If you are using [tmux plugin manager](https://github.com/tmux-plugins/tpm), you can add the following plugin.
@@ -289,6 +309,10 @@ set -g @tmux-nvim-resize-keybinding-left 'M-h'
 set -g @tmux-nvim-resize-keybinding-down 'M-j'
 set -g @tmux-nvim-resize-keybinding-up 'M-k'
 set -g @tmux-nvim-resize-keybinding-right 'M-l'
+
+# test the pane option set by nvim with `pane_flag.enable = true` instead of
+# forking `ps` per keypress (unset by default)
+set -g @tmux-nvim-pane-flag '@is_vim'
 
 run '~/.tmux/plugins/tpm/tpm'
 ```

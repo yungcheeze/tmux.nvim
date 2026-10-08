@@ -67,6 +67,16 @@ local M = {
         -- prevents unzoom tmux when navigating beyond vim border
         persist_zoom = false,
     },
+    pane_flag = {
+        -- sets a tmux pane option while nvim runs in the pane, so tmux
+        -- bindings can test for nvim with a format (`if-shell -F`) instead
+        -- of forking `ps` on every keypress. unlike `#{pane_current_command}`
+        -- it also detects nvim started from another program (e.g. yazi).
+        enable = false,
+
+        -- name of the tmux pane option
+        name = "@is_vim",
+    },
     resize = {
         -- enables default keybindings (A-hjkl) for normal mode
         enable_default_keybindings = false,

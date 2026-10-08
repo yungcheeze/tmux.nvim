@@ -14,6 +14,16 @@ get_tmux_option() {
 
 is_vim=$(get_tmux_option "@tmux-nvim-condition" "ps -o state= -o comm= -t '#{pane_tty}' | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?\.?(view|n?vim?x?)(-wrapped)?(diff)?$'")
 
+# with `pane_flag` enabled in nvim, test the pane option it sets instead of
+# forking `ps` per keypress. the shell check ignores a flag left behind by an
+# nvim that died without cleaning up.
+is_vim_flags=""
+pane_flag=$(get_tmux_option "@tmux-nvim-pane-flag" "")
+if [ -n "$pane_flag" ]; then
+	is_vim_flags="-F"
+	is_vim="#{&&:#{$pane_flag},#{!:#{m/r:^(ba|z|fi|da|k|tc)?sh$,#{pane_current_command}}}}"
+fi
+
 # navigation
 #
 
@@ -35,35 +45,35 @@ navigation_cmd_previous='select-window -p'
 if $navigation_enabled; then
 	if $navigation_cycle; then
 		tmux bind-key -n "$navigation_kb_left" \
-			if-shell "$is_vim" \
+			if-shell $is_vim_flags "$is_vim" \
 			"send-keys $navigation_kb_left" \
 			"$navigation_cmd_left"
 
 		tmux bind-key -n "$navigation_kb_down" \
-			if-shell "$is_vim" \
+			if-shell $is_vim_flags "$is_vim" \
 			"send-keys $navigation_kb_down" \
 			"$navigation_cmd_down"
 
 		tmux bind-key -n "$navigation_kb_up" \
-			if-shell "$is_vim" \
+			if-shell $is_vim_flags "$is_vim" \
 			"send-keys $navigation_kb_up" \
 			"$navigation_cmd_up"
 
 		tmux bind-key -n "$navigation_kb_right" \
-			if-shell "$is_vim" \
+			if-shell $is_vim_flags "$is_vim" \
 			"send-keys $navigation_kb_right" \
 			"$navigation_cmd_right"
 
 		if [ -n "$navigation_kb_next" ]; then
 			tmux bind-key -n "$navigation_kb_next" \
-				if-shell "$is_vim" \
+				if-shell $is_vim_flags "$is_vim" \
 				"send-keys $navigation_kb_next" \
 				"$navigation_cmd_next"
 		fi
 
 		if [ -n "$navigation_kb_previous" ]; then
 			tmux bind-key -n "$navigation_kb_previous" \
-				if-shell "$is_vim" \
+				if-shell $is_vim_flags "$is_vim" \
 				"send-keys $navigation_kb_previous" \
 				"$navigation_cmd_previous"
 		fi
@@ -87,32 +97,32 @@ if $navigation_enabled; then
 			"$navigation_cmd_previous"
 	else
 		tmux bind-key -n "$navigation_kb_left" \
-			if-shell "$is_vim" \
+			if-shell $is_vim_flags "$is_vim" \
 			"send-keys $navigation_kb_left" \
 			"if -F '#{pane_at_left}' '' \
 				'$navigation_cmd_left'"
 
 		tmux bind-key -n "$navigation_kb_down" \
-			if-shell "$is_vim" \
+			if-shell $is_vim_flags "$is_vim" \
 			"send-keys $navigation_kb_down" \
 			"if -F '#{pane_at_bottom}' '' \
 				'$navigation_cmd_down'"
 
 		tmux bind-key -n "$navigation_kb_up" \
-			if-shell "$is_vim" \
+			if-shell $is_vim_flags "$is_vim" \
 			"send-keys $navigation_kb_up" \
 			"if -F '#{pane_at_top}' '' \
 				'$navigation_cmd_up'"
 
 		tmux bind-key -n "$navigation_kb_right" \
-			if-shell "$is_vim" \
+			if-shell $is_vim_flags "$is_vim" \
 			"send-keys $navigation_kb_right" \
 			"if -F '#{pane_at_right}' '' \
 				'$navigation_cmd_right'"
 
 		if [ -n "$navigation_kb_next" ]; then
 			tmux bind-key -n "$navigation_kb_next" \
-				if-shell "$is_vim" \
+				if-shell $is_vim_flags "$is_vim" \
 				"send-keys $navigation_kb_next" \
 				"if -F '#{window_end_flag}' '' \
 					'$navigation_cmd_next'"
@@ -120,7 +130,7 @@ if $navigation_enabled; then
 
 		if [ -n "$navigation_kb_previous" ]; then
 			tmux bind-key -n "$navigation_kb_previous" \
-				if-shell "$is_vim" \
+				if-shell $is_vim_flags "$is_vim" \
 				"send-keys $navigation_kb_previous" \
 				"if 'test #{window_index} -gt  #{base-index}' \
 					'$navigation_cmd_previous'"
@@ -168,10 +178,10 @@ resize_kb_up=$(get_tmux_option "@tmux-nvim-resize-keybinding-up" 'M-k')
 resize_kb_right=$(get_tmux_option "@tmux-nvim-resize-keybinding-right" 'M-l')
 
 if $resize_enabled; then
-	tmux bind -n "$resize_kb_left" if-shell "$is_vim" "send-keys $resize_kb_left" "resize-pane -L $resize_step_x"
-	tmux bind -n "$resize_kb_down" if-shell "$is_vim" "send-keys $resize_kb_down" "resize-pane -D $resize_step_y"
-	tmux bind -n "$resize_kb_up" if-shell "$is_vim" "send-keys $resize_kb_up" "resize-pane -U $resize_step_y"
-	tmux bind -n "$resize_kb_right" if-shell "$is_vim" "send-keys $resize_kb_right" "resize-pane -R $resize_step_x"
+	tmux bind -n "$resize_kb_left" if-shell $is_vim_flags "$is_vim" "send-keys $resize_kb_left" "resize-pane -L $resize_step_x"
+	tmux bind -n "$resize_kb_down" if-shell $is_vim_flags "$is_vim" "send-keys $resize_kb_down" "resize-pane -D $resize_step_y"
+	tmux bind -n "$resize_kb_up" if-shell $is_vim_flags "$is_vim" "send-keys $resize_kb_up" "resize-pane -U $resize_step_y"
+	tmux bind -n "$resize_kb_right" if-shell $is_vim_flags "$is_vim" "send-keys $resize_kb_right" "resize-pane -R $resize_step_x"
 
 	tmux bind-key -T copy-mode-vi "$resize_kb_left" resize-pane -L "$resize_step_x"
 	tmux bind-key -T copy-mode-vi "$resize_kb_down" resize-pane -D "$resize_step_y"
@@ -191,20 +201,20 @@ swap_kb_right=$(get_tmux_option "@tmux-nvim-swap-keybinding-right" 'C-M-l')
 
 if $swap_enabled; then
 	if $swap_cycle; then
-		tmux bind-key -n "$swap_kb_left" if-shell "$is_vim" "send-keys $swap_kb_left" 'swap-pane -s "{left-of}"'
-		tmux bind-key -n "$swap_kb_down" if-shell "$is_vim" "send-keys $swap_kb_down" 'swap-pane -s "{down-of}"'
-		tmux bind-key -n "$swap_kb_up" if-shell "$is_vim" "send-keys $swap_kb_up" 'swap-pane -s "{up-of}"'
-		tmux bind-key -n "$swap_kb_right" if-shell "$is_vim" "send-keys $swap_kb_right" 'swap-pane -s "{right-of}"'
+		tmux bind-key -n "$swap_kb_left" if-shell $is_vim_flags "$is_vim" "send-keys $swap_kb_left" 'swap-pane -s "{left-of}"'
+		tmux bind-key -n "$swap_kb_down" if-shell $is_vim_flags "$is_vim" "send-keys $swap_kb_down" 'swap-pane -s "{down-of}"'
+		tmux bind-key -n "$swap_kb_up" if-shell $is_vim_flags "$is_vim" "send-keys $swap_kb_up" 'swap-pane -s "{up-of}"'
+		tmux bind-key -n "$swap_kb_right" if-shell $is_vim_flags "$is_vim" "send-keys $swap_kb_right" 'swap-pane -s "{right-of}"'
 
 		tmux bind-key -T copy-mode-vi "$swap_kb_left" swap-pane -s "{left-of}"
 		tmux bind-key -T copy-mode-vi "$swap_kb_down" swap-pane -s "{down-of}"
 		tmux bind-key -T copy-mode-vi "$swap_kb_up" swap-pane -s "{up-of}"
 		tmux bind-key -T copy-mode-vi "$swap_kb_right" swap-pane -s "{right-of}"
 	else
-		tmux bind-key -n "$swap_kb_left" if-shell "$is_vim" "send-keys $swap_kb_left" "if -F '#{pane_at_left}' '' 'swap-pane -s \"{left-of}\"'"
-		tmux bind-key -n "$swap_kb_down" if-shell "$is_vim" "send-keys $swap_kb_down" "if -F '#{pane_at_bottom}' '' 'swap-pane -s \"{down-of}\"'"
-		tmux bind-key -n "$swap_kb_up" if-shell "$is_vim" "send-keys $swap_kb_up" "if -F '#{pane_at_top}' '' 'swap-pane -s \"{up-of}\"'"
-		tmux bind-key -n "$swap_kb_right" if-shell "$is_vim" "send-keys $swap_kb_right" "if -F '#{pane_at_right}' '' 'swap-pane -s \"{right-of}\"'"
+		tmux bind-key -n "$swap_kb_left" if-shell $is_vim_flags "$is_vim" "send-keys $swap_kb_left" "if -F '#{pane_at_left}' '' 'swap-pane -s \"{left-of}\"'"
+		tmux bind-key -n "$swap_kb_down" if-shell $is_vim_flags "$is_vim" "send-keys $swap_kb_down" "if -F '#{pane_at_bottom}' '' 'swap-pane -s \"{down-of}\"'"
+		tmux bind-key -n "$swap_kb_up" if-shell $is_vim_flags "$is_vim" "send-keys $swap_kb_up" "if -F '#{pane_at_top}' '' 'swap-pane -s \"{up-of}\"'"
+		tmux bind-key -n "$swap_kb_right" if-shell $is_vim_flags "$is_vim" "send-keys $swap_kb_right" "if -F '#{pane_at_right}' '' 'swap-pane -s \"{right-of}\"'"
 
 		tmux bind-key -T copy-mode-vi "$swap_kb_left" "if -F '#{pane_at_left}' '' 'swap-pane -s \"{left-of}\"'"
 		tmux bind-key -T copy-mode-vi "$swap_kb_down" "if -F '#{pane_at_bottom}' '' 'swap-pane -s \"{down-of}\"'"

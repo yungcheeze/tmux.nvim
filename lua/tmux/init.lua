@@ -2,6 +2,7 @@ local config = require("tmux.configuration")
 local copy = require("tmux.copy")
 local log = require("tmux.log")
 local navigation = require("tmux.navigation")
+local pane_flag = require("tmux.pane_flag")
 local resize = require("tmux.resize")
 local swap = require("tmux.swap")
 local tmux = require("tmux.wrapper.tmux")
@@ -67,6 +68,9 @@ function M.setup(options_, logging)
 
     log.debug("setup navigate")
     navigation.setup()
+
+    log.debug("setup pane flag")
+    pane_flag.setup()
 
     log.debug("setup resize")
     resize.setup()

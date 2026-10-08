@@ -116,6 +116,18 @@ function M.swap(direction)
     M.execute(string.format("swap-pane -t '%s' -s '{%s-of}'", get_tmux_pane(), tmux_swap_directions[direction]))
 end
 
+function M.get_pane_option(name)
+    return (M.execute(string.format("show-options -pqv -t '%s' %s", get_tmux_pane(), name)):gsub("\n$", ""))
+end
+
+function M.set_pane_option(name, value)
+    if value == nil or value == "" then
+        M.execute(string.format("set-option -pqu -t '%s' %s", get_tmux_pane(), name))
+    else
+        M.execute(string.format("set-option -pq -t '%s' %s '%s'", get_tmux_pane(), name, value))
+    end
+end
+
 function M.set_buffer(content, sync_clipboard)
     content = content:gsub("\\", "\\\\")
     content = content:gsub('"', '\\"')
